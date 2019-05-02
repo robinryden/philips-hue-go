@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -77,6 +78,7 @@ type Config struct {
 
 var (
 	username = "tOLctHltX1lJQKmG15wI71QOohiPDzGHb3BhCxd6"
+	client   = &http.Client{}
 )
 
 func (bridge *HueBridge) GetLights() map[string]Light {
@@ -132,4 +134,115 @@ func (bridge *HueBridge) SearchLights(light string) (bool, error) {
 	defer resp.Body.Close()
 
 	return true, nil
+}
+
+func (l *Light) setLightState(bridge HueBridge, id string, light *State) (bool, error) {
+	d := light
+	json, err := json.Marshal(d)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(json))
+
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprint("http://", bridge.InternalIPAdress, "/api/", username, "/lights/", id, "/state"), bytes.NewBuffer(json))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return true, nil
+}
+
+func (l *Light) On() error {
+	l.SetLightState(bridge, l.ID, &State{
+		On: true,
+	})
+	return nil
+}
+
+func (l *Light) Off() error {
+	l.SetLightState(bridge, l.ID, &State{
+		On: false,
+	})
+
+	return nil
+}
+
+func (l *Light) IsOn() bool {
+	return l.State.On
+}
+
+func (l *Light) Rename() error {
+	return nil
+}
+
+func (l *Light) SetBri() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Bri: "",
+	})
+	return nil
+}
+
+func (l *Light) SetHue() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Hue: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetSat() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Sat: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetXy() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Xy: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetCt() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Ct: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetTransitionDuration() error {
+	return nil
+}
+
+func (l *Light) SetEffect() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Effect: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetAlert() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Alert: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetColorMode() error {
+	l.SetLightState(bridge, l.ID, &State{
+		ColorMode: 1,
+	})
+	return nil
+}
+
+func (l *Light) SetMode() error {
+	l.SetLightState(bridge, l.ID, &State{
+		Mode: 1,
+	})
+	return nil
 }

@@ -18,7 +18,10 @@ func main() {
 		lights := bridge.GetLights()
 
 		for _, l := range lights {
-			fmt.Println(l.Name)
+			l.SetLightState(bridge, "3", &State{
+				On: false,
+			})
+			fmt.Println(l.State.On)
 		}
 	}
 }
