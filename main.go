@@ -13,15 +13,15 @@ func main() {
 
 	for _, bridge := range bridges {
 		fmt.Println(bridge.InternalIPAdress)
-		//bridge.CreateUser("my-hue-bridge")
+		//fmt.Println(bridge.CreateUser("my-hue-bridge"))
 
 		lights := bridge.GetLights()
+		fmt.Println(lights)
 
 		for _, l := range lights {
-			l.SetLightState(bridge, "3", &State{
-				On: false,
-			})
-			fmt.Println(l.State.On)
+			//l.On()
+			l.On()
+			fmt.Println(l.IsOn())
 		}
 	}
 }

@@ -37,10 +37,5 @@ func (bridge *HueBridge) CreateUser(device string) *Response {
 
 	fmt.Println(string(r))
 
-	// err = json.Unmarshal(r, &dr)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	return dr
 }

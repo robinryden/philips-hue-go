@@ -1,13 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 )
 
 type Light struct {
@@ -22,6 +17,8 @@ type Light struct {
 	Config           *Config       `json:"config,omitempty"`
 	UniqueID         string        `json:"uniqueid,omitempty"`
 	SwVersion        string        `json:"swversion,omitempty"`
+	Bridge           *HueBridge
+	ID               string
 }
 
 type State struct {
@@ -77,98 +74,31 @@ type Config struct {
 }
 
 var (
-	username = "tOLctHltX1lJQKmG15wI71QOohiPDzGHb3BhCxd6"
+	username = "DQ3k2QsIs3lWJ8g4e3VmCzNBEIfi8vzfQmk25HwP"
 	client   = &http.Client{}
 )
 
-func (bridge *HueBridge) GetLights() map[string]Light {
-	resp, err := http.Get(fmt.Sprint("http://", bridge.InternalIPAdress, "/api/", username, "/lights"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	lights := map[string]Light{}
-	r, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = json.Unmarshal(r, &lights)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return lights
-}
-
-func (bridge *HueBridge) GetLightByID(id int) *Light {
-	resp, err := http.Get(fmt.Sprintf(bridge.InternalIPAdress, "/api/", username, "/lights/", id))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	light := &Light{}
-	r, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = json.Unmarshal(r, &light)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return light
-}
-
-func (bridge *HueBridge) SearchLights(light string) (bool, error) {
-	resp, err := http.PostForm(fmt.Sprintf(bridge.InternalIPAdress, "/api/", username, "/lights"), url.Values{
-		"deviceid": []string{bridge.ID},
-	})
-	if err != nil {
-		log.Fatal(err)
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	return true, nil
-}
-
-func (l *Light) setLightState(bridge HueBridge, id string, light *State) (bool, error) {
-	d := light
-	json, err := json.Marshal(d)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(string(json))
-
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprint("http://", bridge.InternalIPAdress, "/api/", username, "/lights/", id, "/state"), bytes.NewBuffer(json))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return true, nil
-}
-
 func (l *Light) On() error {
-	l.SetLightState(bridge, l.ID, &State{
+	_, err := l.Bridge.SetLightState(l.ID, State{
 		On: true,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
 func (l *Light) Off() error {
-	l.SetLightState(bridge, l.ID, &State{
+	_, err := l.Bridge.SetLightState(l.ID, State{
 		On: false,
 	})
 
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
@@ -180,38 +110,63 @@ func (l *Light) Rename() error {
 	return nil
 }
 
-func (l *Light) SetBri() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Bri: "",
+func (l *Light) SetBri(v int) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Bri: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetHue() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Hue: 1,
+func (l *Light) SetHue(v int) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Hue: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetSat() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Sat: 1,
+func (l *Light) SetSat(v int) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Sat: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetXy() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Xy: 1,
+func (l *Light) SetXy(v []float32) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Xy: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetCt() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Ct: 1,
+func (l *Light) SetCt(v int) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Ct: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
@@ -219,30 +174,50 @@ func (l *Light) SetTransitionDuration() error {
 	return nil
 }
 
-func (l *Light) SetEffect() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Effect: 1,
+func (l *Light) SetEffect(v string) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Effect: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetAlert() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Alert: 1,
+func (l *Light) SetAlert(v string) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Alert: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetColorMode() error {
-	l.SetLightState(bridge, l.ID, &State{
-		ColorMode: 1,
+func (l *Light) SetColorMode(v string) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		ColorMode: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
 
-func (l *Light) SetMode() error {
-	l.SetLightState(bridge, l.ID, &State{
-		Mode: 1,
+func (l *Light) SetMode(v string) error {
+	_, err := l.Bridge.SetLightState(l.ID, State{
+		Mode: v,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	return nil
 }
